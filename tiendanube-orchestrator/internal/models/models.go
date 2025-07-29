@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-type TransactionRequest struct {
+type OperationRequest struct {
 	Value              string `json:"value"`
 	Description        string `json:"description"`
 	Method             string `json:"method"`
