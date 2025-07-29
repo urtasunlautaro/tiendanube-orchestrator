@@ -29,7 +29,7 @@ func NewProcessor(db services.Database, num services.Numerator, logger *slog.Log
 	return &processor{
 		dbService:  db,
 		numService: num,
-		logger:     logger.With("processor"),
+		logger:     logger.With("layer", "processor"),
 	}
 }
 

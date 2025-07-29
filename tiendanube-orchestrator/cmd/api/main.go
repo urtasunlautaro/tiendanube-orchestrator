@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	dbService := s.NewDatabase(logger)
 	numService := s.NewNumerator(logger)
 	processor := p.NewProcessor(dbService, numService, logger)

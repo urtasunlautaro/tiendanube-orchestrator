@@ -17,7 +17,7 @@ type OrchestratorHandler struct {
 func NewOrchestratorHandler(p processor.Processor, logger *slog.Logger) *OrchestratorHandler {
 	return &OrchestratorHandler{
 		processor: p,
-		logger:    logger.With("handler"),
+		logger:    logger.With("layer", "handler"),
 	}
 }
 
