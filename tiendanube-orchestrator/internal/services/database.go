@@ -36,11 +36,15 @@ func (d *database) CreateTransaction(trx models.Transaction) error {
 		SetBody(trx).
 		Post("/transactions")
 	if err != nil {
-		return fmt.Errorf("error creating transaction: %w", err)
+		msg := "error creating trx"
+		d.logger.Error(msg, err)
+		return fmt.Errorf("%s: %w", msg, err)
 	}
 
 	if resp.IsError() {
-		return fmt.Errorf("failed to create transaction, status: %s", resp.Status())
+		msg := "error response creating trx"
+		d.logger.Error(msg, err)
+		return fmt.Errorf("%s: %s", msg, resp.Status())
 	}
 
 	d.logger.Info("trx creation successful")
@@ -53,11 +57,15 @@ func (d *database) CreateReceivable(receivable models.Receivable) error {
 		SetBody(receivable).
 		Post("/receivables")
 	if err != nil {
-		return fmt.Errorf("error creating receivable: %w", err)
+		msg := "error creating receivable"
+		d.logger.Error(msg, err)
+		return fmt.Errorf("%s: %w", msg, err)
 	}
 
 	if resp.IsError() {
-		return fmt.Errorf("failed to create receivable, status: %s", resp.Status())
+		msg := "error response creating receivable"
+		d.logger.Error(msg, err)
+		return fmt.Errorf("%s: %s", msg, resp.Status())
 	}
 
 	d.logger.Info("receivable creation successful")
@@ -70,11 +78,15 @@ func (d *database) DeleteTransaction(id string) error {
 	resp, err := d.httpClient.R().
 		Delete(fmt.Sprintf("/transactions/%s", id))
 	if err != nil {
-		return fmt.Errorf("error deleting transaction: %w", err)
+		msg := "error deleting transaction"
+		d.logger.Error(msg, err)
+		return fmt.Errorf("%s: %w", msg, err)
 	}
 
 	if resp.IsError() {
-		return fmt.Errorf("failed to delete transaction, status: %s", resp.Status())
+		msg := "error response deleting trx"
+		d.logger.Error(msg, err)
+		return fmt.Errorf("%s, status: %s", msg, resp.Status())
 	}
 
 	d.logger.Info("trx deleted")

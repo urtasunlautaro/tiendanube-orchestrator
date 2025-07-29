@@ -9,7 +9,10 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-const numeratorBaseUrl = "http://localhost:3000"
+const (
+	numeratorBaseUrl = "http://localhost:3000"
+	retries          = 5
+)
 
 type Numerator interface {
 	GetTwoUniqueIDs() (string, string, error)
@@ -37,18 +40,22 @@ type numeratorReqBody struct {
 }
 
 func (n *numerator) GetTwoUniqueIDs() (string, string, error) {
-	for i := 0; i < 5; i++ {
+	for i := 0; i < retries; i++ {
 		n.logger.Info(fmt.Sprintf("getting ids, attempt #%d", i))
 		var currentValue numeratorResponse
 		response, err := n.httpClient.R().
 			SetResult(&currentValue).
 			Get("/numerator")
 		if err != nil {
-			return "", "", fmt.Errorf("failed to get current numerator: %w", err)
+			msg := "failed to get current numerator"
+			n.logger.Error(msg, err)
+			return "", "", fmt.Errorf("%s: %w", msg, err)
 		}
 
 		if response.IsError() {
-			return "", "", fmt.Errorf("http error getting numerator: %s", response.Status())
+			msg := "error response getting numerator"
+			n.logger.Error(msg, err)
+			return "", "", fmt.Errorf("%s: %s", msg, response.Status())
 		}
 
 		oldValue := currentValue.Value
@@ -62,7 +69,9 @@ func (n *numerator) GetTwoUniqueIDs() (string, string, error) {
 			SetBody(reqBody).
 			Put("/numerator/test-and-set")
 		if err != nil {
-			return "", "", fmt.Errorf("request failed: %w", err)
+			msg := "request for numerator test-and-set failed"
+			n.logger.Error(msg, err)
+			return "", "", fmt.Errorf("%s: %w", msg, err)
 		}
 
 		if !respPut.IsError() {

@@ -43,11 +43,11 @@ func (p *processor) CreateOperation(input models.OperationRequest) (*models.Tran
 
 	receivable := getReceivable(transaction, receivableId)
 
-	if err := p.dbService.CreateTransaction(transaction); err != nil {
+	if err = p.dbService.CreateTransaction(transaction); err != nil {
 		return nil, fmt.Errorf("failed to create transaction, aborting: %w", err)
 	}
 
-	if err := p.dbService.CreateReceivable(receivable); err != nil {
+	if err = p.dbService.CreateReceivable(receivable); err != nil {
 		p.logger.Warn(fmt.Sprintf("failed to create receivable, rolling back trx with id %s", trxId))
 		if rollbackErr := p.dbService.DeleteTransaction(trxId); rollbackErr != nil {
 			p.logger.Error(fmt.Sprintf("failed to rollback trx with id %s: %v", trxId, rollbackErr))
