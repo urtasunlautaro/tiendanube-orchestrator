@@ -1,69 +1,73 @@
 package services
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
+	"time"
+
+	"github.com/go-resty/resty/v2"
 	"github.com/urtasunlautaro/orchestrator/internal/models"
-	"io"
-	"log"
-	"net/http"
 )
 
 const dbBaseURL = "http://localhost:8080"
 
-func CreateTransaction(trx models.Transaction) error {
-	return postJSON(dbBaseURL+"/transactions", trx)
+type Database interface {
+	CreateTransaction(trx models.Transaction) error
+	CreateReceivable(receivable models.Receivable) error
+	DeleteTransaction(id string) error
 }
 
-func CreateReceivable(receivable models.Receivable) error {
-	return postJSON(dbBaseURL+"/receivables", receivable)
+type database struct {
+	httpClient *resty.Client
 }
 
-func DeleteTransaction(id string) error {
-	url := fmt.Sprintf("%s/transactions/%s", dbBaseURL, id)
-	req, err := http.NewRequest(http.MethodDelete, url, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create delete request: %w", err)
-	}
+func NewDatabase() Database {
+	client := resty.New().
+		SetBaseURL(dbBaseURL).
+		SetTimeout(15 * time.Second)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("delete request failed: %w", err)
-	}
-	defer closeConnection(url, resp)
+	return &database{httpClient: client}
+}
 
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("failed to delete transaction, status: %s", resp.Status)
+// Ahora los métodos usan el cliente resty del struct (d.httpClient)
+func (d *database) CreateTransaction(trx models.Transaction) error {
+	resp, err := d.httpClient.R().
+		SetBody(trx).
+		Post("/transactions") // Usamos path relativo porque ya configuramos BaseURL
+
+	if err != nil {
+		return fmt.Errorf("error creating transaction: %w", err)
+	}
+	if resp.IsError() {
+		return fmt.Errorf("failed to create transaction, status: %s", resp.Status())
 	}
 	return nil
 }
 
-func postJSON(url string, payload interface{}) error {
-	body, err := json.Marshal(payload)
+func (d *database) CreateReceivable(receivable models.Receivable) error {
+	resp, err := d.httpClient.R().
+		SetBody(receivable).
+		Post("/receivables")
+
 	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
+		return fmt.Errorf("error creating receivable: %w", err)
 	}
-
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(body))
-	if err != nil {
-		return fmt.Errorf("http post to %s failed: %w", url, err)
-	}
-
-	defer closeConnection(url, resp)
-
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("received non-2xx status code from %s: %s", url, resp.Status)
+	if resp.IsError() {
+		return fmt.Errorf("failed to create receivable, status: %s", resp.Status())
 	}
 	return nil
 }
 
-func closeConnection(url string, resp *http.Response) {
-	func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Printf("warning: failed to close response body for url %s: %v", url, err)
-		}
-	}(resp.Body)
+func (d *database) DeleteTransaction(id string) error {
+	// La ruta se construye usando el path y el ID.
+	// Resty se encarga de unirlo con la BaseURL.
+	resp, err := d.httpClient.R().
+		Delete(fmt.Sprintf("/transactions/%s", id))
+
+	if err != nil {
+		return fmt.Errorf("error deleting transaction: %w", err)
+	}
+	if resp.IsError() {
+		return fmt.Errorf("failed to delete transaction, status: %s", resp.Status())
+	}
+	return nil
 }
