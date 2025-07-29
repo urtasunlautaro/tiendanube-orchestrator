@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -16,13 +17,14 @@ type Numerator interface {
 
 type numerator struct {
 	httpClient *resty.Client
+	logger     *slog.Logger
 }
 
-func NewNumerator() Numerator {
+func NewNumerator(logger *slog.Logger) Numerator {
 	client := resty.New().
 		SetBaseURL(numeratorBaseUrl).
 		SetTimeout(10 * time.Second)
-	return &numerator{httpClient: client}
+	return &numerator{httpClient: client, logger: logger.With("service", "numerator")}
 }
 
 type numeratorResponse struct {
@@ -36,6 +38,7 @@ type numeratorReqBody struct {
 
 func (n *numerator) GetTwoUniqueIDs() (string, string, error) {
 	for i := 0; i < 5; i++ {
+		n.logger.Info(fmt.Sprintf("getting ids, attempt #%d", i))
 		var currentValue numeratorResponse
 		response, err := n.httpClient.R().
 			SetResult(&currentValue).
